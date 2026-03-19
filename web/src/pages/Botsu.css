@@ -1,0 +1,99 @@
+.botsu-page {
+  padding: 40px 20px 80px;
+}
+
+.botsu-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 14px;
+  color: #888;
+  text-decoration: none;
+  margin-bottom: 24px;
+}
+
+.back-link:hover { color: #1a1a1a; }
+
+.botsu-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.botsu-kurochan {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 50%;
+  margin-bottom: 16px;
+}
+
+.botsu-header h1 {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.botsu-header p {
+  font-size: 14px;
+  color: #888;
+  line-height: 1.8;
+}
+
+.botsu-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: #aaa;
+  font-size: 14px;
+  background: #fff9f0;
+  border-radius: 12px;
+}
+
+.botsu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.botsu-card {
+  background: #fff;
+  border: 1px solid #ffd6e0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.botsu-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  filter: grayscale(20%);
+}
+
+.botsu-body {
+  padding: 16px;
+}
+
+.botsu-category {
+  display: inline-block;
+  font-size: 11px;
+  background: #fff0f5;
+  color: #e94560;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.botsu-body h2 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.botsu-body p {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.6;
+}

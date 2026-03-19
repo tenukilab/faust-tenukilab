@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>てぬきブロック崩し | てぬきラボ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: "Hiragino Sans", "Meiryo", sans-serif;
+      color: white;
+    }
+
+    #header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    #header h1 {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffd6e0;
+      letter-spacing: 2px;
+    }
+
+    #header p {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    #game-wrap {
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+      border: 2px solid #e94560;
+      box-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26, 26, 46, 0.85);
+      border-radius: 12px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #overlay h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    #overlay p {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 24px;
+      line-height: 1.8;
+    }
+
+    #start-btn {
+      padding: 14px 40px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+
+    #start-btn:hover { opacity: 0.85; }
+
+    #score-bar {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    #score-bar span { font-weight: bold; color: white; }
+
+    #back-link {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #888;
+      text-decoration: none;
+    }
+
+    #back-link:hover { color: #ffd6e0; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🧪 てぬきブロック崩し</h1>
+  <p>てぬきさんのやる気のなさを体現したブロック崩し</p>
+</div>
+
+<div id="score-bar">
+  スコア: <span id="score">0</span>
+  &nbsp;&nbsp;ライフ: <span id="lives">3</span>
+  &nbsp;&nbsp;レベル: <span id="level">1</span>
+</div>
+
+<div id="game-wrap">
+  <canvas id="canvas" width="480" height="400"></canvas>
+  <div id="overlay">
+    <h2>🧪 てぬきブロック崩し</h2>
+    <p>← → キーまたはマウスでパドルを動かして<br />ブロックを全部壊せ！<br /><br />手は動かさない。頭だけ動かす。</p>
+    <button id="start-btn" onclick="startGame()">スタート</button>
+  </div>
+</div>
+
+<a href="/lab" id="back-link">← 実験室に戻る</a>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const levelEl = document.getElementById('level');
+
+const W = canvas.width;
+const H = canvas.height;
+
+// ゲーム定数
+const PADDLE_H = 10;
+const PADDLE_W = 80;
+const BALL_R = 7;
+const BLOCK_ROWS = 5;
+const BLOCK_COLS = 10;
+const BLOCK_W = 42;
+const BLOCK_H = 16;
+const BLOCK_PAD = 4;
+const BLOCK_OFF_X = 9;
+const BLOCK_OFF_Y = 50;
+
+// ブロックカラー（てぬきラボカラー）
+const ROW_COLORS = [
+  '#e94560', // ピンク
+  '#ff7043', // オレンジ
+  '#ffb300', // イエロー
+  '#41c9b4', // グリーン
+  '#5c6bc0', // パープル
+];
+
+const ROW_POINTS = [50, 40, 30, 20, 10];
+
+let paddle, ball, blocks, score, lives, level, animId, gameRunning, gameOver;
+let keys = {};
+let mouseX = null;
+
+function initGame() {
+  paddle = { x: W / 2 - PADDLE_W / 2, y: H - 30, w: PADDLE_W, h: PADDLE_H };
+  score = 0;
+  lives = 3;
+  level = 1;
+  gameOver = false;
+  resetBall();
+  buildBlocks();
+  updateHUD();
+}
+
+function resetBall() {
+  ball = {
+    x: W / 2,
+    y: H - 60,
+    r: BALL_R,
+    dx: 3 * (Math.random() > 0.5 ? 1 : -1),
+    dy: -4,
+    speed: 4 + (level - 1) * 0.5,
+  };
+  normalizeSpeed();
+}
+
+function normalizeSpeed() {
+  const mag = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+  ball.dx = ball.dx / mag * ball.speed;
+  ball.dy = ball.dy / mag * ball.speed;
+}
+
+function buildBlocks() {
+  blocks = [];
+  for (let r = 0; r < BLOCK_ROWS; r++) {
+    for (let c = 0; c < BLOCK_COLS; c++) {
+      blocks.push({
+        x: BLOCK_OFF_X + c * (BLOCK_W + BLOCK_PAD),
+        y: BLOCK_OFF_Y + r * (BLOCK_H + BLOCK_PAD),
+        alive: true,
+        color: ROW_COLORS[r],
+        pts: ROW_POINTS[r],
+      });
+    }
+  }
+}
+
+function updateHUD() {
+  scoreEl.textContent = score;
+  livesEl.textContent = lives;
+  levelEl.textContent = level;
+}
+
+// 入力
+document.addEventListener('keydown', e => { keys[e.key] = true; });
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.touches[0].clientX - rect.left;
+}, { passive: false });
+
+function update() {
+  // パドル移動
+  const speed = 6;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) paddle.x -= speed;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) paddle.x += speed;
+  if (mouseX !== null) {
+    paddle.x = mouseX - paddle.w / 2;
+  }
+  paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
+
+  // ボール移動
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // 壁反射
+  if (ball.x - ball.r < 0) { ball.x = ball.r; ball.dx = Math.abs(ball.dx); }
+  if (ball.x + ball.r > W) { ball.x = W - ball.r; ball.dx = -Math.abs(ball.dx); }
+  if (ball.y - ball.r < 0) { ball.y = ball.r; ball.dy = Math.abs(ball.dy); }
+
+  // パドル衝突
+  if (
+    ball.y + ball.r >= paddle.y &&
+    ball.y - ball.r <= paddle.y + paddle.h &&
+    ball.x >= paddle.x - ball.r &&
+    ball.x <= paddle.x + paddle.w + ball.r &&
+    ball.dy > 0
+  ) {
+    ball.dy = -Math.abs(ball.dy);
+    // 当たった位置で角度変化
+    const rel = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+    ball.dx = rel * ball.speed * 1.2;
+    ball.dy = -Math.sqrt(Math.max(0, ball.speed * ball.speed - ball.dx * ball.dx));
+    normalizeSpeed();
+  }
+
+  // ブロック衝突
+  let cleared = true;
+  for (const b of blocks) {
+    if (!b.alive) continue;
+    cleared = false;
+    if (
+      ball.x + ball.r > b.x &&
+      ball.x - ball.r < b.x + BLOCK_W &&
+      ball.y + ball.r > b.y &&
+      ball.y - ball.r < b.y + BLOCK_H
+    ) {
+      b.alive = false;
+      score += b.pts;
+      updateHUD();
+
+      // どの面に当たったか
+      const fromLeft = Math.abs(ball.x - (b.x + BLOCK_W));
+      const fromRight = Math.abs(ball.x - b.x);
+      const fromTop = Math.abs(ball.y - (b.y + BLOCK_H));
+      const fromBottom = Math.abs(ball.y - b.y);
+      const min = Math.min(fromLeft, fromRight, fromTop, fromBottom);
+      if (min === fromTop || min === fromBottom) ball.dy = -ball.dy;
+      else ball.dx = -ball.dx;
+      break;
+    }
+  }
+
+  // 全消し → レベルアップ
+  if (cleared) {
+    level++;
+    ball.speed = 4 + (level - 1) * 0.5;
+    buildBlocks();
+    resetBall();
+    updateHUD();
+    showMessage(`🎉 レベル ${level}！`, 'スピードアップ！', false);
+    return;
+  }
+
+  // ボールアウト
+  if (ball.y - ball.r > H) {
+    lives--;
+    updateHUD();
+    if (lives <= 0) {
+      endGame(false);
+      return;
+    }
+    resetBall();
+  }
+}
+
+function draw() {
+  // 背景
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+
+  // ブロック
+  for (const b of blocks) {
+    if (!b.alive) continue;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, BLOCK_W, BLOCK_H, 4);
+    ctx.fill();
+    // ハイライト
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(b.x + 2, b.y + 2, BLOCK_W - 4, 3);
+  }
+
+  // パドル
+  const grad = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.h);
+  grad.addColorStop(0, '#ff6b8a');
+  grad.addColorStop(1, '#e94560');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 6);
+  ctx.fill();
+
+  // ボール
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fillStyle = 'white';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(233,69,96,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ボールの光彩
+  ctx.beginPath();
+  ctx.arc(ball.x - 2, ball.y - 2, ball.r * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fill();
+}
+
+function loop() {
+  if (!gameRunning) return;
+  update();
+  draw();
+  animId = requestAnimationFrame(loop);
+}
+
+function showMessage(title, body, showBtn = true, btnText = 'もう一度', btnFn = null) {
+  overlay.innerHTML = `
+    <h2>${title}</h2>
+    <p>${body}</p>
+    ${showBtn ? `<button id="start-btn" onclick="${btnFn || 'startGame()'}" style="padding:14px 40px;background:#e94560;color:white;border:none;border-radius:999px;font-size:16px;font-weight:bold;cursor:pointer;font-family:inherit;">${btnText}</button>` : ''}
+  `;
+  overlay.style.display = 'flex';
+  if (!showBtn) setTimeout(() => { overlay.style.display = 'none'; }, 1500);
+}
+
+function endGame(win) {
+  gameRunning = false;
+  cancelAnimationFrame(animId);
+  if (win) {
+    showMessage('🏆 クリア！', `スコア: ${score}<br />てぬきさんが手を動かしたかもしれない。`, true, 'もう一度', 'startGame()');
+  } else {
+    showMessage('💧 ゲームオーバー', `スコア: ${score}<br />クロちゃんが「もっと頑張れ」と言っています。`, true, 'もう一度', 'startGame()');
+  }
+}
+
+function startGame() {
+  initGame();
+  overlay.style.display = 'none';
+  gameRunning = true;
+  loop();
+}
+
+// 初期描画
+draw();
+</script>
+
+</body>
+</html>
