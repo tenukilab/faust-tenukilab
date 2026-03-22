@@ -1,0 +1,190 @@
+.activity-page {
+  padding: 40px 20px 80px;
+}
+
+.activity-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 14px;
+  color: #888;
+  text-decoration: none;
+  margin-bottom: 24px;
+}
+.back-link:hover { color: #1a1a1a; }
+
+.activity-header {
+  margin-bottom: 48px;
+}
+.activity-header h1 {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.activity-header p {
+  font-size: 15px;
+  color: #888;
+}
+
+.activity-loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: #aaa;
+  font-size: 15px;
+}
+
+/* セクション */
+.activity-section {
+  margin-bottom: 56px;
+}
+.activity-section-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.activity-section-sub {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.graph-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.graph-total {
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* グラフ */
+.graph-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.graph-wrap {
+  display: inline-block;
+  min-width: max-content;
+}
+.graph-months {
+  display: flex;
+  margin-bottom: 4px;
+  padding-left: 0;
+}
+.graph-month-cell {
+  width: 14px;
+  font-size: 10px;
+  color: #aaa;
+  text-align: center;
+  flex-shrink: 0;
+}
+.graph-grid {
+  display: flex;
+  gap: 2px;
+}
+.graph-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.graph-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.level-empty { background: transparent; }
+.level-0 { background: #f0f0f0; }
+.level-1 { background: #fdd0d8; }
+.level-2 { background: #f89aaa; }
+.level-3 { background: #f45870; }
+.level-4 { background: #e94560; }
+
+.graph-cell.today {
+  outline: 2px solid #e94560;
+  outline-offset: 1px;
+}
+
+.graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* コミットリスト */
+.commit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.commit-item {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 14px;
+}
+.commit-item:last-child { border-bottom: none; }
+.commit-date {
+  color: #aaa;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.commit-message {
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+/* 公開ログ */
+.log-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.log-card {
+  display: block;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+.log-card:hover { border-color: #e94560; }
+.log-name {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #1a1a1a;
+}
+.log-preview {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.7;
+}
+
+.activity-footer {
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 13px;
+  color: #ccc;
+  text-align: center;
+}

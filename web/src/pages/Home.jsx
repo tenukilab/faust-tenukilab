@@ -17,6 +17,7 @@ export default function Home() {
             <a href="https://note.com/tenuki_lab" target="_blank" rel="noreferrer" className="btn btn-note">note</a>
             <Link to="/blog" className="btn btn-blog">記事一覧</Link>
             <Link to="/lab" className="btn btn-lab">🧪 実験室</Link>
+            <Link to="/activity" className="btn btn-activity">🫀 生存確認</Link>
             <Link to="/botsu" className="btn btn-botsu">クロちゃんのお蔵入り（泣）</Link>
           </div>
         </div>
