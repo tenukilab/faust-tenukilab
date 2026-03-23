@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>射撃訓練場 // RANGE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+  :root {
+    --red:#ff4655; --bg:#0f1923; --bg2:#1a2634; --panel:#0d1520;
+    --text:#ece8e1; --dim:#7a8fa6;
+    --green:#4ce878; --yellow:#f5c518; --cyan:#1de9b6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Rajdhani','Noto Sans JP',sans-serif;height:100vh;overflow:hidden;user-select:none;}
+  #hud{position:absolute;top:0;left:0;right:0;height:48px;background:var(--panel);border-bottom:1px solid rgba(255,70,85,0.3);display:flex;align-items:center;padding:0 16px;gap:24px;z-index:100;}
+  .hud-logo{font-size:13px;font-weight:700;letter-spacing:4px;color:var(--red);text-transform:uppercase;}
+  .hud-sep{width:1px;height:24px;background:rgba(255,255,255,0.1);}
+  .hud-stat{display:flex;flex-direction:column;align-items:center;}
+  .hud-stat-label{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+  .hud-stat-val{font-size:18px;font-weight:700;line-height:1;}
+  .c-green{color:var(--green);}.c-yellow{color:var(--yellow);}.c-cyan{color:var(--cyan);}.c-red{color:var(--red);}
+  .hud-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+  #mode-label{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+  #viewport{position:absolute;top:48px;left:0;right:0;bottom:56px;overflow:hidden;cursor:none;}
+  #world{position:absolute;width:3000px;height:3000px;left:0;top:0;will-change:transform;}
+  #world-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,70,85,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,70,85,0.04) 1px,transparent 1px);background-size:48px 48px;}
+  #vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.55) 100%);pointer-events:none;z-index:10;}
+  #crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:50;}
+  #sens-hint{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:var(--dim);z-index:30;pointer-events:none;}
+  .target{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;animation:tgtIn 0.08s ease-out;}
+  .target::after{content:'';position:absolute;inset:22%;border-radius:50%;background:rgba(255,255,255,0.18);}
+  @keyframes tgtIn{from{transform:translate(-50%,-50%) scale(0.1);opacity:0;}to{transform:translate(-50%,-50%) scale(1);opacity:1;}}
+  .hit-flash{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;animation:hFlash 0.28s ease-out forwards;}
+  @keyframes hFlash{0%{transform:translate(-50%,-50%) scale(1);opacity:0.9;}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}}
+  .hit-num{position:absolute;font-size:13px;font-weight:700;color:var(--green);pointer-events:none;animation:floatUp 0.6s ease-out forwards;text-shadow:0 0 8px rgba(78,232,120,0.7);transform:translateX(-50%);}
+  @keyframes floatUp{0%{opacity:1;top:0;}100%{opacity:0;top:-30px;}}
+  #miss-overlay{position:absolute;inset:0;background:rgba(255,70,85,0.1);pointer-events:none;opacity:0;transition:opacity 0.08s;z-index:20;}
+  #miss-overlay.show{opacity:1;}
+  #bottom-bar{position:absolute;bottom:0;left:0;right:0;height:56px;background:var(--panel);border-top:1px solid rgba(255,70,85,0.2);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;}
+  .btn{padding:6px 16px;background:transparent;border:1px solid rgba(255,70,85,0.5);color:var(--red);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all 0.15s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+  .btn:hover{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn.active{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn.sec{border-color:rgba(255,255,255,0.2);color:var(--dim);}
+  .btn.sec:hover{background:rgba(255,255,255,0.1);color:var(--text);border-color:rgba(255,255,255,0.4);}
+  .btn.sec.active{background:rgba(255,255,255,0.15);color:var(--text);}
+  .bar-sep{width:1px;height:32px;background:rgba(255,255,255,0.1);}
+  #timer-wrap{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  #timer-text{font-size:22px;font-weight:700;color:var(--text);min-width:52px;text-align:right;}
+  #timer-text.urgent{color:var(--red);animation:pulse 0.5s infinite alternate;}
+  @keyframes pulse{from{opacity:1;}to{opacity:0.5;}}
+  #timer-bar-bg{width:120px;height:4px;background:rgba(255,255,255,0.1);}
+  #timer-bar-fill{height:100%;background:var(--cyan);transition:width 0.1s linear,background 0.3s;}
+  #settings-panel{position:absolute;top:48px;right:0;width:280px;bottom:56px;background:var(--panel);border-left:1px solid rgba(255,70,85,0.2);padding:16px;z-index:90;overflow-y:auto;transform:translateX(100%);transition:transform 0.25s ease;}
+  #settings-panel.open{transform:translateX(0);}
+  .ss-title{font-size:9px;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid rgba(255,70,85,0.2);}
+  .ss{margin-bottom:20px;}
+  .sr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .sl{font-size:12px;color:var(--dim);letter-spacing:1px;}
+  .sv{font-size:14px;font-weight:700;color:var(--text);min-width:36px;text-align:right;}
+  input[type=range]{width:100px;accent-color:var(--red);cursor:pointer;}
+  #xhair-preview{width:80px;height:80px;background:var(--bg2);border:1px solid rgba(255,255,255,0.1);position:relative;margin:0 auto 12px;}
+  #start-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.72);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);}
+  #start-overlay h1{font-size:36px;font-weight:700;letter-spacing:8px;text-transform:uppercase;margin-bottom:4px;}
+  #start-overlay .sub{font-size:12px;letter-spacing:4px;color:var(--dim);margin-bottom:8px;}
+  .tip{font-size:11px;letter-spacing:1px;color:var(--dim);margin-top:6px;}
+  .tip span{color:var(--cyan);}
+  #start-btn{margin-top:24px;padding:12px 40px;background:var(--red);border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:4px;text-transform:uppercase;cursor:pointer;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);transition:all 0.15s;}
+  #start-btn:hover{background:#ff1e30;transform:scale(1.04);}
+  #result-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.78);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+  #result-overlay.show{display:flex;}
+  .rt{font-size:13px;letter-spacing:6px;color:var(--dim);text-transform:uppercase;margin-bottom:24px;}
+  .rg{font-size:48px;font-weight:700;letter-spacing:4px;margin-bottom:24px;}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;width:420px;margin-bottom:28px;}
+  .rc{background:var(--bg2);padding:14px 16px;text-align:center;}
+  .rcl{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:4px;}
+  .rcv{font-size:28px;font-weight:700;}
+  .ract{display:flex;gap:12px;}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hud-logo">RANGE</div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat"><div class="hud-stat-label">SCORE</div><div class="hud-stat-val c-cyan" id="hud-score">0</div></div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat"><div class="hud-stat-label">HITS</div><div class="hud-stat-val c-green" id="hud-hits">0</div></div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat"><div class="hud-stat-label">MISS</div><div class="hud-stat-val c-red" id="hud-miss">0</div></div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat"><div class="hud-stat-label">ACC</div><div class="hud-stat-val c-yellow" id="hud-acc">--%</div></div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat"><div class="hud-stat-label">STREAK</div><div class="hud-stat-val" id="hud-streak">0</div></div>
+  <div class="hud-right">
+    <span id="mode-label">RAPID FIRE</span>
+    <div class="hud-sep"></div>
+    <span style="font-size:10px;color:var(--dim);letter-spacing:1px;">シークレット対応</span>
+  </div>
+</div>
+
+<div id="viewport">
+  <div id="world">
+    <div id="world-bg"></div>
+  </div>
+  <div id="vignette"></div>
+  <div id="miss-overlay"></div>
+  <svg id="crosshair" width="40" height="40" viewBox="0 0 40 40"></svg>
+  <div id="sens-hint">マウスを動かして視点操作　　クリックで射撃</div>
+</div>
+
+<div id="bottom-bar">
+  <button class="btn active" onclick="setMode('rapid')" id="btn-rapid">RAPID FIRE</button>
+  <button class="btn" onclick="setMode('precision')" id="btn-precision">PRECISION</button>
+  <button class="btn" onclick="setMode('flick')" id="btn-flick">FLICK</button>
+  <div class="bar-sep"></div>
+  <button class="btn sec" onclick="toggleSettings()" id="btn-settings">設定 ⚙</button>
+  <div class="bar-sep"></div>
+  <span style="font-size:10px;color:var(--dim);letter-spacing:1px;">感度</span>
+  <input type="range" id="sens-slider" min="1" max="20" value="8" style="width:80px;accent-color:var(--cyan);">
+  <span style="font-size:13px;font-weight:700;color:var(--cyan);min-width:24px;" id="sens-val">8</span>
+  <div id="timer-wrap">
+    <div id="timer-bar-bg"><div id="timer-bar-fill" style="width:100%"></div></div>
+    <div id="timer-text">60</div>
+  </div>
+</div>
+
+<div id="settings-panel">
+  <div class="ss">
+    <div class="ss-title">クロスヘア</div>
+    <div id="xhair-preview"><canvas id="xhair-canvas" width="80" height="80"></canvas></div>
+    <div class="sr"><span class="sl">色</span><input type="color" id="xh-color" value="#00ff44" style="cursor:pointer;border:1px solid rgba(255,255,255,0.2);width:40px;height:24px;background:none;"></div>
+    <div class="sr"><span class="sl">長さ</span><input type="range" id="xh-len" min="3" max="12" value="6"><span class="sv" id="xh-len-v">6</span></div>
+    <div class="sr"><span class="sl">太さ</span><input type="range" id="xh-thick" min="1" max="4" value="2"><span class="sv" id="xh-thick-v">2</span></div>
+    <div class="sr"><span class="sl">ギャップ</span><input type="range" id="xh-gap" min="0" max="10" value="3"><span class="sv" id="xh-gap-v">3</span></div>
+    <div class="sr"><span class="sl">中心点</span><input type="checkbox" id="xh-dot" checked style="accent-color:var(--red);cursor:pointer;"></div>
+    <div class="sr"><span class="sl">輪郭</span><input type="checkbox" id="xh-outline" checked style="accent-color:var(--red);cursor:pointer;"></div>
+  </div>
+  <div class="ss">
+    <div class="ss-title">ターゲット</div>
+    <div class="sr"><span class="sl">サイズ</span><input type="range" id="tgt-size" min="20" max="80" value="40"><span class="sv" id="tgt-size-v">40</span></div>
+    <div class="sr"><span class="sl">同時数</span><input type="range" id="tgt-count" min="1" max="6" value="3"><span class="sv" id="tgt-count-v">3</span></div>
+    <div class="sr"><span class="sl">表示時間(ms)</span><input type="range" id="tgt-life" min="500" max="3000" step="100" value="1500"><span class="sv" id="tgt-life-v">1500</span></div>
+  </div>
+  <div class="ss">
+    <div class="ss-title">ゲーム</div>
+    <div class="sr"><span class="sl">制限時間(s)</span><input type="range" id="game-time" min="15" max="120" step="15" value="60"><span class="sv" id="game-time-v">60</span></div>
+  </div>
+</div>
+
+<div id="start-overlay">
+  <h1>射撃訓練場</h1>
+  <div class="sub">SHOOTING RANGE // FPS AIM TRAINER</div>
+  <div class="tip">マウスを動かして<span>視点を操作</span>　照準は画面中央に固定</div>
+  <div class="tip">感度はボトムバーのスライダーで調整可能</div>
+  <button id="start-btn" onclick="startGame()">START TRAINING</button>
+</div>
+
+<div id="result-overlay">
+  <div class="rt">ROUND COMPLETE</div>
+  <div class="rg" id="result-grade" style="color:var(--cyan)">B</div>
+  <div class="rgrid">
+    <div class="rc"><div class="rcl">SCORE</div><div class="rcv c-cyan" id="res-score">0</div></div>
+    <div class="rc"><div class="rcl">HITS</div><div class="rcv c-green" id="res-hits">0</div></div>
+    <div class="rc"><div class="rcl">MISSES</div><div class="rcv c-red" id="res-miss">0</div></div>
+    <div class="rc"><div class="rcl">ACCURACY</div><div class="rcv c-yellow" id="res-acc">0%</div></div>
+    <div class="rc"><div class="rcl">MAX STREAK</div><div class="rcv" id="res-streak">0</div></div>
+    <div class="rc"><div class="rcl">AVG REACT</div><div class="rcv" id="res-avg">0ms</div></div>
+  </div>
+  <div class="ract">
+    <button class="btn" onclick="startGame()">RETRY</button>
+    <button class="btn sec" onclick="showStart()">MENU</button>
+  </div>
+</div>
+
+<!-- PAUSE OVERLAY -->
+<div id="pause-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.75);flex-direction:column;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);">
+  <div style="font-size:11px;letter-spacing:6px;color:var(--dim);text-transform:uppercase;margin-bottom:16px;">PAUSED</div>
+  <div style="font-size:36px;font-weight:700;letter-spacing:6px;color:var(--text);margin-bottom:32px;">// ESC //</div>
+  <div style="display:flex;gap:12px;">
+    <button class="btn" id="pause-resume">RESUME</button>
+    <button class="btn sec" id="pause-quit">QUIT</button>
+  </div>
+  <div style="margin-top:20px;font-size:10px;letter-spacing:2px;color:var(--dim);">Escキーでポーズ　再クリックで再開</div>
+</div>
+
+<script>
+const cfg={xhColor:'#00ff44',xhLen:6,xhThick:2,xhGap:3,xhDot:true,xhOutline:true,tgtSize:40,tgtCount:3,tgtLife:1500,gameTime:60};
+let gameRunning=false,score=0,hits=0,misses=0,streak=0,maxStreak=0;
+let totalTime=60,timeLeft=60,timerInterval=null;
+let targets=[],hitTimes=[],mode='rapid';
+let sensitivity=8;
+
+const WORLD_W=3000,WORLD_H=3000;
+let viewX=WORLD_W/2,viewY=WORLD_H/2;
+let prevMX=null,prevMY=null;
+
+const viewport=document.getElementById('viewport');
+const world=document.getElementById('world');
+
+function vsize(){return{w:viewport.clientWidth,h:viewport.clientHeight};}
+function w2s(wx,wy){const{w,h}=vsize();return{x:wx-viewX+w/2,y:wy-viewY+h/2};}
+function updateWorld(){const{w,h}=vsize();world.style.transform=`translate(${-(viewX-w/2)}px,${-(viewY-h/2)}px)`;}
+
+viewport.addEventListener('mousemove',e=>{
+  if(!gameRunning)return;
+  if(prevMX===null){prevMX=e.clientX;prevMY=e.clientY;return;}
+  const dx=e.clientX-prevMX,dy=e.clientY-prevMY;
+  prevMX=e.clientX;prevMY=e.clientY;
+  viewX+=dx*(sensitivity/8);
+  viewY+=dy*(sensitivity/8);
+  const{w,h}=vsize();
+  // 視点移動範囲をviewport±半分に制限 → マウスが画面端を超えてもターゲットは常に視野内
+  const RANGE_X=w*0.45, RANGE_Y=h*0.45;
+  viewX=Math.max(WORLD_W/2-RANGE_X,Math.min(WORLD_W/2+RANGE_X,viewX));
+  viewY=Math.max(WORLD_H/2-RANGE_Y,Math.min(WORLD_H/2+RANGE_Y,viewY));
+  updateWorld();
+});
+
+viewport.addEventListener('click',e=>{
+  if(!gameRunning)return;
+  const{w,h}=vsize();
+  const cx=w/2,cy=h/2;
+  let hit=false;
+  for(let i=targets.length-1;i>=0;i--){
+    const t=targets[i];
+    const s=w2s(t.wx,t.wy);
+    if(Math.hypot(s.x-cx,s.y-cy)<=t.size/2){hitTarget(t);hit=true;break;}
+  }
+  if(!hit){
+    misses++;streak=0;
+    const ov=document.getElementById('miss-overlay');
+    ov.classList.add('show');setTimeout(()=>ov.classList.remove('show'),110);
+    updateHUD();
+  }
+});
+
+const TCOLORS={rapid:['#ff4655','#ff6b7a','#e84057'],precision:['#4ce878','#6bffa0','#3bcc68'],flick:['#f5c518','#ffd94d','#e0b000']};
+
+(()=>{const s=document.createElement('style');s.textContent='@keyframes shrinkRing{from{transform:scale(1.4);opacity:0.8;}to{transform:scale(1);opacity:0;}}';document.head.appendChild(s);})();
+
+function spawnTarget(){
+  if(!gameRunning)return;
+  const size=cfg.tgtSize;
+  // 出現範囲をviewport内に収める（視点クランプと一致）
+  const{w:vw,h:vh}=vsize();
+  const spreadX=vw*0.4, spreadY=vh*0.4;
+  const wx=viewX+(Math.random()-0.5)*spreadX*2;
+  const wy=viewY+(Math.random()-0.5)*spreadY*2;
+  const colors=TCOLORS[mode];
+  const color=colors[Math.floor(Math.random()*colors.length)];
+  const life=cfg.tgtLife;
+  const el=document.createElement('div');
+  el.className='target';
+  el.style.cssText=`left:${wx}px;top:${wy}px;width:${size}px;height:${size}px;background:radial-gradient(circle at 35% 35%,${color}cc,${color}55);border:2px solid ${color};box-shadow:0 0 14px ${color}55,inset 0 0 8px ${color}22;`;
+  const ring=document.createElement('div');
+  ring.style.cssText=`position:absolute;inset:-5px;border-radius:50%;border:2px solid ${color}77;animation:shrinkRing ${life}ms linear forwards;`;
+  el.appendChild(ring);
+  world.appendChild(el);
+  const obj={wx,wy,el,size,color,spawnTime:Date.now()};
+  targets.push(obj);
+  obj.timer=setTimeout(()=>{removeTarget(obj);if(gameRunning)maintainTargets();},life);
+}
+
+function removeTarget(obj){
+  clearTimeout(obj.timer);obj.el.remove();
+  const i=targets.indexOf(obj);if(i>-1)targets.splice(i,1);
+}
+
+function hitTarget(obj){
+  const now=Date.now();
+  hitTimes.push(now-obj.spawnTime);
+  hits++;streak++;if(streak>maxStreak)maxStreak=streak;
+  const tb=Math.max(0,1-(now-obj.spawnTime)/cfg.tgtLife);
+  const sb=Math.min(streak,5);
+  const pts=Math.round((100+tb*50)*(1+sb*0.1));
+  score+=pts;
+  const fl=document.createElement('div');
+  fl.className='hit-flash';
+  fl.style.cssText=`left:${obj.wx}px;top:${obj.wy}px;width:${obj.size}px;height:${obj.size}px;background:${obj.color};`;
+  world.appendChild(fl);setTimeout(()=>fl.remove(),320);
+  const ne=document.createElement('div');
+  ne.className='hit-num';ne.textContent='+'+pts;
+  ne.style.left=obj.wx+'px';ne.style.top=(obj.wy-obj.size/2)+'px';
+  world.appendChild(ne);setTimeout(()=>ne.remove(),650);
+  removeTarget(obj);updateHUD();if(gameRunning)maintainTargets();
+}
+
+function maintainTargets(){
+  const n=cfg.tgtCount-targets.length;
+  for(let i=0;i<n;i++){
+    const d=mode==='flick'?280+Math.random()*420:i*70;
+    setTimeout(()=>{if(gameRunning)spawnTarget();},d);
+  }
+}
+
+function updateHUD(){
+  document.getElementById('hud-score').textContent=score.toLocaleString();
+  document.getElementById('hud-hits').textContent=hits;
+  document.getElementById('hud-miss').textContent=misses;
+  const tot=hits+misses;
+  document.getElementById('hud-acc').textContent=tot>0?Math.round(hits/tot*100)+'%':'--%';
+  const sel=document.getElementById('hud-streak');
+  sel.textContent=streak;
+  sel.style.color=streak>=5?'var(--yellow)':streak>=3?'var(--cyan)':'var(--text)';
+}
+
+function startTimer(){
+  timeLeft=totalTime;updateTimerUI();
+  timerInterval=setInterval(()=>{
+    timeLeft-=0.1;
+    if(timeLeft<=0){timeLeft=0;updateTimerUI();endGame();}else updateTimerUI();
+  },100);
+}
+function updateTimerUI(){
+  const el=document.getElementById('timer-text');
+  const fill=document.getElementById('timer-bar-fill');
+  el.textContent=Math.ceil(timeLeft);
+  el.classList.toggle('urgent',timeLeft<=10);
+  const p=(timeLeft/totalTime)*100;
+  fill.style.width=p+'%';
+  fill.style.background=p>50?'var(--cyan)':p>25?'var(--yellow)':'var(--red)';
+}
+
+function startGame(){
+  document.getElementById('start-overlay').style.display='none';
+  document.getElementById('result-overlay').classList.remove('show');
+  score=0;hits=0;misses=0;streak=0;maxStreak=0;hitTimes=[];
+  targets.forEach(t=>{clearTimeout(t.timer);t.el.remove();});targets=[];
+  viewX=WORLD_W/2;viewY=WORLD_H/2;prevMX=null;prevMY=null;
+  updateWorld();totalTime=cfg.gameTime;gameRunning=true;
+  updateHUD();maintainTargets();startTimer();
+}
+
+function endGame(){
+  gameRunning=false;clearInterval(timerInterval);
+  targets.forEach(t=>{clearTimeout(t.timer);t.el.remove();});targets=[];
+  const tot=hits+misses;
+  const acc=tot>0?Math.round(hits/tot*100):0;
+  const avg=hitTimes.length>0?Math.round(hitTimes.reduce((a,b)=>a+b,0)/hitTimes.length):0;
+  document.getElementById('res-score').textContent=score.toLocaleString();
+  document.getElementById('res-hits').textContent=hits;
+  document.getElementById('res-miss').textContent=misses;
+  document.getElementById('res-acc').textContent=acc+'%';
+  document.getElementById('res-streak').textContent=maxStreak;
+  document.getElementById('res-avg').textContent=avg+'ms';
+  const ge=document.getElementById('result-grade');
+  let grade,color;
+  if(acc>=90&&score>=5000){grade='S';color='var(--yellow)';}
+  else if(acc>=80){grade='A';color='var(--green)';}
+  else if(acc>=65){grade='B';color='var(--cyan)';}
+  else if(acc>=50){grade='C';color='var(--text)';}
+  else{grade='D';color='var(--red)';}
+  ge.textContent=grade;ge.style.color=color;
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function showStart(){
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('start-overlay').style.display='flex';
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mode-label').textContent=m==='rapid'?'RAPID FIRE':m==='precision'?'PRECISION':'FLICK SHOT';
+  ['rapid','precision','flick'].forEach(id=>document.getElementById('btn-'+id).classList.toggle('active',id===m));
+  if((m==='precision'||m==='flick')&&!gameRunning){
+    document.getElementById('tgt-count').value=1;cfg.tgtCount=1;document.getElementById('tgt-count-v').textContent=1;
+  }
+}
+
+document.getElementById('sens-slider').addEventListener('input',function(){
+  sensitivity=parseInt(this.value);document.getElementById('sens-val').textContent=sensitivity;
+});
+
+function toggleSettings(){
+  const p=document.getElementById('settings-panel');p.classList.toggle('open');
+  document.getElementById('btn-settings').classList.toggle('active',p.classList.contains('open'));
+}
+
+function drawCrosshair(){
+  const cv=document.getElementById('xhair-canvas'),ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,80,80);
+  const cx=40,cy=40,len=cfg.xhLen,thick=cfg.xhThick,gap=cfg.xhGap,color=cfg.xhColor;
+  const dl=(x1,y1,x2,y2,c,w)=>{ctx.beginPath();ctx.strokeStyle=c;ctx.lineWidth=w;ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
+  if(cfg.xhOutline){dl(cx-gap-len,cy,cx-gap,cy,'rgba(0,0,0,0.7)',thick+2);dl(cx+gap,cy,cx+gap+len,cy,'rgba(0,0,0,0.7)',thick+2);dl(cx,cy-gap-len,cx,cy-gap,'rgba(0,0,0,0.7)',thick+2);dl(cx,cy+gap,cx,cy+gap+len,'rgba(0,0,0,0.7)',thick+2);}
+  dl(cx-gap-len,cy,cx-gap,cy,color,thick);dl(cx+gap,cy,cx+gap+len,cy,color,thick);dl(cx,cy-gap-len,cx,cy-gap,color,thick);dl(cx,cy+gap,cx,cy+gap+len,color,thick);
+  if(cfg.xhDot){if(cfg.xhOutline){ctx.beginPath();ctx.arc(cx,cy,thick,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fill();}ctx.beginPath();ctx.arc(cx,cy,thick-0.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+}
+
+function buildSVGCrosshair(){
+  const svg=document.getElementById('crosshair');
+  const len=cfg.xhLen*2,thick=cfg.xhThick*2,gap=cfg.xhGap*2,color=cfg.xhColor,cx=20,cy=20;
+  const lines=[`x1="${cx-gap-len}" y1="${cy}" x2="${cx-gap}" y2="${cy}"`,`x1="${cx+gap}" y1="${cy}" x2="${cx+gap+len}" y2="${cy}"`,`x1="${cx}" y1="${cy-gap-len}" x2="${cx}" y2="${cy-gap}"`,`x1="${cx}" y1="${cy+gap}" x2="${cx}" y2="${cy+gap+len}"`];
+  let h='';
+  if(cfg.xhOutline)lines.forEach(l=>h+=`<line ${l} stroke="rgba(0,0,0,0.65)" stroke-width="${thick+3}"/>`);
+  lines.forEach(l=>h+=`<line ${l} stroke="${color}" stroke-width="${thick}"/>`);
+  if(cfg.xhDot){if(cfg.xhOutline)h+=`<circle cx="${cx}" cy="${cy}" r="${thick/2+1}" fill="rgba(0,0,0,0.65)"/>`;h+=`<circle cx="${cx}" cy="${cy}" r="${thick/2}" fill="${color}"/>`;}
+  svg.innerHTML=h;
+}
+
+const BINDINGS=[['xh-color','xhColor','color'],['xh-len','xhLen','int','xh-len-v'],['xh-thick','xhThick','int','xh-thick-v'],['xh-gap','xhGap','int','xh-gap-v'],['xh-dot','xhDot','bool'],['xh-outline','xhOutline','bool'],['tgt-size','tgtSize','int','tgt-size-v'],['tgt-count','tgtCount','int','tgt-count-v'],['tgt-life','tgtLife','int','tgt-life-v'],['game-time','gameTime','int','game-time-v']];
+BINDINGS.forEach(([id,key,type,vid])=>{
+  const el=document.getElementById(id);if(!el)return;
+  el.addEventListener('input',()=>{
+    const v=type==='int'?parseInt(el.value):type==='bool'?el.checked:el.value;
+    cfg[key]=v;if(vid)document.getElementById(vid).textContent=v;
+    if(key.startsWith('xh')){drawCrosshair();buildSVGCrosshair();}
+    if(key==='gameTime'){totalTime=v;document.getElementById('timer-text').textContent=v;}
+  });
+});
+
+drawCrosshair();buildSVGCrosshair();updateWorld();
+
+// Escで中断
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!gameRunning)return;
+  gameRunning=false;clearInterval(timerInterval);
+  targets.forEach(t=>{clearTimeout(t.timer);t.el.remove();});targets=[];
+  const po=document.getElementById('pause-overlay');po.style.display='flex';
+});
+document.getElementById('pause-resume').addEventListener('click',()=>{
+  document.getElementById('pause-overlay').style.display='none';
+  gameRunning=true;startTimer();maintainTargets();
+});
+document.getElementById('pause-quit').addEventListener('click',()=>{
+  document.getElementById('pause-overlay').style.display='none';showStart();
+});
+</script>
+</body>
+</html>

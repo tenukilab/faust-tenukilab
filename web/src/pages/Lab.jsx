@@ -4,6 +4,22 @@ import './Lab.css'
 // 実験・試作品データ（手動で追加していく）
 const labItems = [
   {
+    id: 3,
+    title: "射撃訓練場",
+    description: "会社でこっそりVALORANTの練習ができるエイムトレーナー。RAPID FIRE・PRECISION・FLICKの3モード。感度・クロスヘア・ターゲットサイズも調整できます。",
+    status: "公開中",
+    tags: ["ゲーム", "FPS", "JavaScript"],
+    link: "/games/fps/",
+  },
+  {
+    id: 2,
+    title: "替え歌マシーン",
+    description: "自分のタイプを選ぶと、AIが自虐替え歌を生成します。デブ系・キョロ充系・チー牛系・根暗系・明るくなる系の5種類。",
+    status: "公開中",
+    tags: ["AI", "Gemini", "替え歌"],
+    link: "/lab/kaeuta",
+  },
+  {
     id: 1,
     title: "てぬきブロック崩し",
     description: "AIと会話しながら作ったブロック崩し。マウスか矢印キーでパドルを動かして全ブロックを破壊せよ。レベルアップでスピードアップ。",
