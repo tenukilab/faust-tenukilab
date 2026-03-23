@@ -1,5 +1,5 @@
 [build]
-  command = "cd web && npm run build"
+  command = "npm install --prefix netlify/functions && cd web && npm run build"
   publish = "web/dist"
   functions = "netlify/functions"
 
