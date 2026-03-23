@@ -1,6 +1,7 @@
 [build]
-  command = "npm install --prefix netlify/functions && cd web && npm run build"
-  publish = "web/dist"
+  base = "web"
+  command = "npm install --prefix netlify/functions && npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
 [[redirects]]
