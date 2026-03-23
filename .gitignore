@@ -9,3 +9,5 @@ netlify/functions/node_modules
 .env
 .env.local
 .env.production
+*.env.txt
+.env.example
